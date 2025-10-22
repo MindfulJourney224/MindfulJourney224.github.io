@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz - Mental Health Awareness Game</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', cursive;
+            background: linear-gradient(135deg, #e0f7fa 0%, #ffe0b2 100%);
+            min-height: 100vh;
+            margin: 0;
+            color: #222;
+        }
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px;
+            background: linear-gradient(45deg, #4CAF50, #66BB6A);
+            color: #fff;
+            font-size: 18px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+        .progress-bar {
+            height: 20px;
+            width: 60%;
+            background: #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px auto;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .progress-bar-inner {
+            height: 100%;
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        .question-container {
+            margin: 30px auto;
+            width: 70%;
+            padding: 30px;
+            background: #fff;
+            border-radius: 20px;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+            animation: fadeIn 0.5s ease;
+            text-align: center;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .question-container h3 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #4CAF50;
+        }
+        .options button {
+            display: block;
+            width: 80%;
+            margin: 15px auto;
+            padding: 15px;
+            font-size: 18px;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.3s;
+            background: linear-gradient(45deg, #80cbc4, #4DB6AC);
+            color: #fff;
+        }
+        .options button:hover {
+            transform: scale(1.05);
+            background: linear-gradient(45deg, #4DB6AC, #26A69A);
+        }
+        .correct {
+            background: linear-gradient(45deg, #4CAF50, #66BB6A) !important;
+            animation: correctPulse 0.5s ease;
+        }
+        .wrong {
+            background: linear-gradient(45deg, #f44336, #e53935) !important;
+            animation: wrongShake 0.5s ease;
+        }
+        @keyframes correctPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        @keyframes wrongShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        .badge {
+            text-align: center;
+            margin-top: 30px;
+            padding: 50px;
+            border-radius: 20px;
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            font-size: 32px;
+            color: #fff;
+            animation: bounce 1s infinite alternate;
+        }
+        @keyframes bounce {
+            from { transform: scale(1); }
+            to { transform: scale(1.1); }
+        }
+        .incorrect-answers {
+            margin-top: 20px;
+            background: #ffe6e6;
+            padding: 15px;
+            border-radius: 10px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease;
+        }
+        .incorrect-answers.open {
+            max-height: 500px;
+        }
+        .incorrect-answers h4 {
+            cursor: pointer;
+            color: #f44336;
+        }
+        .next-level {
+            display: block;
+            margin: 25px auto;
+            padding: 15px 35px;
+            font-size: 20px;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(45deg, #2196F3, #42A5F5);
+            color: #fff;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+            transition: transform 0.2s;
+            width: 200px;
+        }
+        .next-level:hover {
+            transform: scale(1.05);
+        }
+        .leaderboard {
+            margin-top: 40px;
+            background: #f9f9f9;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 0 12px rgba(0,0,0,0.15);
+        }
+        .leaderboard h3 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #4A90E2;
+        }
+        .leaderboard table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .leaderboard th, .leaderboard td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        .leaderboard th {
+            background: linear-gradient(45deg, #4A90E2, #64B5F6);
+            color: #fff;
+        }
+        .leaderboard tr:nth-child(even) {
+            background: #e6f0ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-header">
+        <div id="levelDisplay">Level: 1</div>
+        <div id="pointsDisplay">Points: 0 / 0</div>
+    </div>
+
+    <div class="progress-bar">
+        <div class="progress-bar-inner" id="progressBar"></div>
+    </div>
+
+    <div id="quizContent">
+        <!-- Quiz content will be dynamically inserted here -->
+    </div>
+
+    <script>
+        // Predefined questions for each level
+        const questions = {
+            1: [
+                { question: "What is mental health?", options: ["Physical fitness", "Emotional and psychological well-being", "Academic success", "Social media popularity"], correct: 1 },
+                { question: "Which of these is a sign of good mental health?", options: ["Feeling sad all the time", "Having positive relationships", "Ignoring problems", "Being stressed constantly"], correct: 1 },
+                { question: "What should you do if you're feeling overwhelmed?", options: ["Keep it to yourself", "Talk to a trusted friend or adult", "Ignore the feelings", "Blame others"], correct: 1 },
+                { question: "Mental health includes:", options: ["Only physical health", "Emotional, psychological, and social well-being", "Just academic performance", "Only physical appearance"], correct: 1 }
+            ],
+            2: [
+                { question: "What is anxiety?", options: ["A type of food", "Feeling worried or nervous about something", "A video game", "A sport"], correct: 1 },
+                { question: "How can you manage stress?", options: ["Eat junk food", "Exercise and talk to friends", "Stay up all night", "Ignore everyone"], correct: 1 },
+                { question: "Depression can make you feel:", options: ["Happy and energetic", "Sad, tired, and lose interest in things", "Excited about everything", "Angry at everyone"], correct: 1 },
+                { question: "Seeking help for mental health is:", options: ["A sign of weakness", "A brave and smart choice", "Embarrassing", "Unnecessary"], correct: 1 }
+            ],
+            3: [
+                { question: "What is self-esteem?", options: ["How much money you have", "How you value and respect yourself", "Your physical strength", "Your test scores"], correct: 1 },
+                { question: "Bullying can affect mental health by:", options: ["Making you stronger", "Causing fear, sadness, and low self-esteem", "Improving your grades", "Making you popular"], correct: 1 },
+                { question: "Positive coping strategies include:", options: ["Yelling at others", "Deep breathing and positive thinking", "Avoiding problems", "Blaming yourself"], correct: 1 },
+                { question: "Mental health support can come from:", options: ["Only doctors", "Friends, family, teachers, and professionals", "No one", "Only celebrities"], correct: 1 }
+            ],
+            4: [
+                { question: "What is resilience?", options: ["Giving up easily", "Bouncing back from difficulties", "Avoiding challenges", "Complaining constantly"], correct: 1 },
+                { question: "How can you build resilience?", options: ["Isolate yourself", "Learn from experiences and seek support", "Blame others for problems", "Give up on goals"], correct: 1 },
+                { question: "Mental health awareness helps:", options: ["Reduce stigma and encourage help-seeking", "Make people feel ashamed", "Ignore mental health issues", "Focus only on physical health"], correct: 1 },
+                { question: "The best way to support a friend with mental health issues is to:", options: ["Ignore them", "Listen without judgment and encourage professional help", "Make fun of them", "Tell everyone their secrets"], correct: 1 }
+            ]
+        };
+
+        let currentUser = JSON.parse(localStorage.getItem('currentUser'));
+        if (!currentUser || currentUser.role !== 'student') {
+            window.location.href = 'login.html';
+        }
+
+        let level = parseInt(new URLSearchParams(window.location.search).get('level')) || 1;
+        let currentIndex = 0;
+        let score = 0;
+        let incorrect = [];
+        let levelQuestions = questions[level] || [];
+        let totalQuestions = levelQuestions.length;
+
+        document.getElementById('levelDisplay').textContent = `Level: ${level}`;
+        document.getElementById('pointsDisplay').textContent = `Points: ${score} / ${totalQuestions}`;
+
+        function loadQuestion() {
+            if (currentIndex >= totalQuestions) {
+                showResults();
+                return;
+            }
+
+            const question = levelQuestions[currentIndex];
+            const progress = ((currentIndex) / totalQuestions) * 100;
+            document.getElementById('progressBar').style.width = `${progress}%`;
+
+            const quizContent = document.getElementById('quizContent');
+            quizContent.innerHTML = `
+                <div class="question-container">
+                    <h3>Question ${currentIndex + 1}:</h3>
+                    <p>${question.question}</p>
+                    <div class="options">
+                        ${question.options.map((option, index) => 
+                            `<button onclick="checkAnswer(${index})">${option}</button>`
+                        ).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function checkAnswer(selected) {
+            const question = levelQuestions[currentIndex];
+            const buttons = document.querySelectorAll('.options button');
+
+            if (selected === question.correct) {
+                score++;
+                buttons[selected].classList.add('correct');
+                // Play correct sound (if available)
+                playSound('correct');
+            } else {
+                buttons[selected].classList.add('wrong');
+                buttons[question.correct].classList.add('correct');
+                incorrect.push(question);
+                playSound('wrong');
+            }
+
+            document.getElementById('pointsDisplay').textContent = `Points: ${score} / ${totalQuestions}`;
+
+            setTimeout(() => {
+                currentIndex++;
+                loadQuestion();
+            }, 1500);
+        }
+
+        function playSound(type) {
+            // Simple sound effect using Web Audio API or HTML5 audio
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            if (type === 'correct') {
+                oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1);
+            } else {
+                oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+            }
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.2);
+        }
+
+        function showResults() {
+            const percentage = (score / totalQuestions) * 100;
+            const passed = percentage >= 70;
+            let badgeText = passed ? `Level ${level} Badge` : "Try Again";
+
+            // Update user progress
+            let users = JSON.parse(localStorage.getItem('users')) || [];
+            let userIndex = users.findIndex(u => u.id === currentUser.id);
+            if (userIndex !== -1) {
+                if (passed && level > users[userIndex].level_completed) {
+                    users[userIndex].level_completed = level;
+                    users[userIndex].badge = badgeText;
+                    users[userIndex].xp = (users[userIndex].xp || 0) + score * 10;
+                }
+                localStorage.setItem('users', JSON.stringify(users));
+                currentUser = users[userIndex];
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            }
+
+            // Save result
+            let results = JSON.parse(localStorage.getItem('results')) || [];
+            results.push({ user_id: currentUser.id, score: score, level: level, date: new Date().toISOString() });
+            localStorage.setItem('results', JSON.stringify(results));
+
+            let content = `
+                <div class="question-container">
+                    <div class="badge">
+                        ${passed ? `Congratulations ${currentUser.full_name}!<br>${badgeText}` : "Level Failed! Try Again"}
+                    </div>
+                    <h3>Score: ${score} / ${totalQuestions} (${percentage.toFixed(1)}%)</h3>
+            `;
+
+            if (incorrect.length > 0) {
+                content += `
+                    <div class="incorrect-answers" id="incorrectAnswers">
+                        <h4 onclick="this.parentElement.classList.toggle('open')">Questions you got wrong (click to expand)</h4>
+                        ${incorrect.map(q => `
+                            <p><strong>${q.question}</strong><br>
+                            Correct answer: ${q.options[q.correct]}</p>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            if (passed && level < 4) {
+                content += `<a class="next-level" href="quiz.html?level=${level + 1}">Go to Level ${level + 1}</a>`;
+            } else if (level === 4 && passed) {
+                content += `
+                    <div class="badge" style="background: linear-gradient(45deg, #00FFFF, #0000FF);">
+                        Well done ${currentUser.full_name}!<br>Wellness Master!
+                    </div>
+                    ${generateLeaderboard()}
+                `;
+            } else {
+                content += `<a class="next-level" href="quiz.html?level=${level}">Retry Level ${level}</a>`;
+            }
+
+            content += `<p style="text-align: center; margin-top: 20px;"><a href="logout.html" style="color: #fff; background: linear-gradient(45deg, #ff6b6b, #ffa500); padding: 10px 20px; border-radius: 25px; text-decoration: none; font-weight: bold;">Logout</a></p>`;
+            content += `</div>`;
+            document.getElementById('quizContent').innerHTML = content;
+        }
+
+        function generateLeaderboard() {
+            let results = JSON.parse(localStorage.getItem('results')) || [];
+            let users = JSON.parse(localStorage.getItem('users')) || [];
+
+            // Group by school and calculate averages
+            let schoolStats = {};
+            results.forEach(r => {
+                let user = users.find(u => u.id === r.user_id);
+                if (user && user.role === 'student') {
+                    let key = `${user.school_name}_${user.province}`;
+                    if (!schoolStats[key]) {
+                        schoolStats[key] = { school: user.school_name, province: user.province, scores: [], students: new Set() };
+                    }
+                    schoolStats[key].scores.push(r.score);
+                    schoolStats[key].students.add(user.id);
+                }
+            });
+
+            let leaderboard = Object.values(schoolStats).map(stat => ({
+                school: stat.school,
+                province: stat.province,
+                avgScore: stat.scores.reduce((a, b) => a + b, 0) / stat.scores.length,
+                students: stat.students.size
+            })).sort((a, b) => b.avgScore - a.avgScore || b.students - a.students).slice(0, 10);
+
+            return `
+                <div class="leaderboard">
+                    <h3>Top Schools Leaderboard</h3>
+                    <table>
+                        <tr>
+                            <th>Rank</th>
+                            <th>School</th>
+                            <th>Province</th>
+                            <th>Students Played</th>
+                            <th>Average Score</th>
+                        </tr>
+                        ${leaderboard.map((item, index) => `
+                            <tr>
+                                <td>${index + 1}</td>
+                                <td>${item.school}</td>
+                                <td>${item.province}</td>
+                                <td>${item.students}</td>
+                                <td>${item.avgScore.toFixed(1)}%</td>
+                            </tr>
+                        `).join('')}
+                    </table>
+                </div>
+            `;
+        }
+
+        // Start the quiz
+        loadQuestion();
+    </script>
+</body>
+</html>

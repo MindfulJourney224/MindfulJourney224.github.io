@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Mental Health Awareness Game</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #fff;
+        }
+        .login-container {
+            width: 400px;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            text-align: center;
+            animation: fadeIn 1s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        h2 {
+            margin-bottom: 20px;
+            font-size: 28px;
+            color: #fff;
+        }
+        input, select {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            outline: none;
+        }
+        input::placeholder, select {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(45deg, #ff6b6b, #ffa500);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+        button:hover {
+            transform: scale(1.05);
+            background: linear-gradient(45deg, #ff5252, #ff8c00);
+        }
+        .error {
+            color: #ffcccc;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        a {
+            color: #ffeb3b;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .logo {
+            font-size: 40px;
+            margin-bottom: 20px;
+            color: #ffeb3b;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">🧠</div>
+        <h2>Login to Mental Health Game</h2>
+        <div id="message" class="error"></div>
+        <form id="loginForm">
+            <input type="text" id="full_name" placeholder="Full Name" required>
+            <input type="password" id="password" placeholder="Password" required>
+            <select id="role" required>
+                <option value="">--Login as--</option>
+                <option value="student">Student</option>
+                <option value="Department of Basic Education">Department of Basic Education</option>
+            </select>
+            <button type="submit">Login</button>
+        </form>
+        <p style="margin-top: 20px;">
+            <a href="register.html">New Student? Register here</a>
+        </p>
+        <p>
+            <a href="forgot_password.html">Forgot your password?</a>
+        </p>
+    </div>
+
+    <script>
+        // Initialize default DOE user if not exists
+        const users = JSON.parse(localStorage.getItem('users')) || [];
+        const doeExists = users.some(u => u.role === 'Department of Basic Education');
+        if (!doeExists) {
+            users.push({
+                id: 'doe_default',
+                full_name: 'Department of Basic Education',
+                province: '',
+                school_name: '',
+                password: 'doe123',
+                role: 'Department of Basic Education',
+                level_completed: 0,
+                xp: 0,
+                badge: ''
+            });
+            localStorage.setItem('users', JSON.stringify(users));
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const fullName = document.getElementById('full_name').value.trim();
+            const password = document.getElementById('password').value;
+            const role = document.getElementById('role').value;
+            const messageDiv = document.getElementById('message');
+
+            if (!fullName || !password || !role) {
+                messageDiv.textContent = "Please fill all fields.";
+                return;
+            }
+
+            if (role === 'student' && fullName.split(' ').length < 2) {
+                messageDiv.textContent = "Please enter your full name (first and last name).";
+                return;
+            }
+
+            // Get users from localStorage
+            const users = JSON.parse(localStorage.getItem('users')) || [];
+
+            // Find user
+            const user = users.find(u => u.full_name.toLowerCase() === fullName.toLowerCase() && u.role === role);
+
+            if (!user) {
+                messageDiv.textContent = "User not found.";
+                return;
+            }
+
+            // Check password (simple check, since no hashing in client-side)
+            if (user.password !== password) {
+                messageDiv.textContent = "Invalid password.";
+                return;
+            }
+
+            // Set current user in localStorage
+            localStorage.setItem('currentUser', JSON.stringify(user));
+
+            // Redirect based on role
+            if (role === 'student') {
+                window.location.href = 'dashboard.html';
+            } else if (role === 'Department of Basic Education') {
+                window.location.href = 'stats.html';
+            }
+        });
+    </script>
+</body>
+</html>

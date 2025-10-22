@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Department of Basic Education Stats - Mental Health Awareness Game</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        h1, h2 {
+            text-align: center;
+            color: #fff;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 30px;
+            background: #fff;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background: linear-gradient(45deg, #007bff, #0056b3);
+            color: white;
+        }
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        .province-section {
+            margin-bottom: 40px;
+            padding: 20px;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        .province-section h3 {
+            color: #007bff;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .actions {
+            text-align: center;
+            margin-top: 30px;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 0 10px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .btn-export {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+        }
+        .btn-export:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        .btn-logout {
+            background: linear-gradient(45deg, #dc3545, #fd7e14);
+            color: white;
+        }
+        .btn-logout:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        .chart-container {
+            margin: 40px 0;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        .summary {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        .summary-item {
+            background: linear-gradient(45deg, #17a2b8, #20c997);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            min-width: 200px;
+            margin: 10px;
+        }
+        .summary-item h3 {
+            margin: 0;
+            font-size: 2em;
+        }
+        .summary-item p {
+            margin: 5px 0 0;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Department of Basic Education</h1>
+        <h2>Mental Health Awareness Game Stats</h2>
+
+        <div id="summary" class="summary">
+            <!-- Summary will be populated by JS -->
+        </div>
+
+        <div class="chart-container">
+            <h2>Average Scores by Province</h2>
+            <canvas id="provinceChart" width="800" height="400"></canvas>
+        </div>
+
+        <div id="provinceStats">
+            <!-- Province stats will be populated by JS -->
+        </div>
+
+        <div class="actions">
+            <button class="btn btn-export" onclick="exportToCSV()">Download CSV</button>
+            <button class="btn btn-logout" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <script>
+        // Check if DOE user is logged in
+        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+        if (!currentUser || currentUser.role !== 'Department of Basic Education') {
+            window.location.href = 'login.html';
+        }
+
+        const allProvinces = [
+            'Eastern Cape', 'Free State', 'Gauteng', 'KwaZulu-Natal',
+            'Limpopo', 'Mpumalanga', 'North West', 'Northern Cape',
+            'Western Cape'
+        ];
+
+        function loadStats() {
+            const users = JSON.parse(localStorage.getItem('users')) || [];
+            const results = JSON.parse(localStorage.getItem('results')) || [];
+
+            // Initialize provinces
+            let provinces = {};
+            allProvinces.forEach(prov => {
+                provinces[prov] = [];
+            });
+
+            // Populate provinces with student data
+            users.filter(u => u.role === 'student').forEach(user => {
+                const province = user.province || 'Unknown';
+                if (!provinces[province]) provinces[province] = [];
+                provinces[province].push(user);
+            });
+
+            // Calculate stats
+            let totalStudents = 0;
+            let totalPassed = 0;
+            let totalFailed = 0;
+            let provinceAverages = {};
+            let provinceCounts = {};
+
+            Object.keys(provinces).forEach(province => {
+                const students = provinces[province];
+                let scores = [];
+                students.forEach(student => {
+                    const studentResults = results.filter(r => r.user_id === student.id);
+                    if (studentResults.length > 0) {
+                        const avgScore = studentResults.reduce((sum, r) => sum + r.score, 0) / studentResults.length;
+                        scores.push(avgScore);
+                        totalStudents++;
+                        if (avgScore >= 7) totalPassed++; // Assuming 70% pass mark, score out of 4
+                        else totalFailed++;
+                    }
+                });
+                provinceAverages[province] = scores.length ? (scores.reduce((a, b) => a + b, 0) / scores.length) * 25 : 0; // Convert to percentage
+                provinceCounts[province] = students.length;
+            });
+
+            // Update summary
+            document.getElementById('summary').innerHTML = `
+                <div class="summary-item">
+                    <h3>${totalStudents}</h3>
+                    <p>Total Students Participated</p>
+                </div>
+                <div class="summary-item">
+                    <h3>${totalPassed}</h3>
+                    <p>Passed (≥70%)</p>
+                </div>
+                <div class="summary-item">
+                    <h3>${totalFailed}</h3>
+                    <p>Failed (<70%)</p>
+                </div>
+                <div class="summary-item">
+                    <h3>${(totalStudents ? ((totalPassed / totalStudents) * 100).toFixed(1) : 0)}%</h3>
+                    <p>National Average Score</p>
+                </div>
+            `;
+
+            // Create chart
+            const ctx = document.getElementById('provinceChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(provinceAverages),
+                    datasets: [{
+                        label: 'Average Score (%)',
+                        data: Object.values(provinceAverages),
+                        backgroundColor: Object.values(provinceAverages).map(avg => 
+                            avg > 80 ? '#4caf50' : avg > 60 ? '#ffc107' : '#f44336'
+                        ),
+                    }]
+                },
+                options: {
+                    scales: { y: { beginAtZero: true, max: 100 } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            // Province sections
+            const provinceStatsDiv = document.getElementById('provinceStats');
+            provinceStatsDiv.innerHTML = Object.keys(provinces).map(province => {
+                const students = provinces[province];
+                const avg = provinceAverages[province];
+                const color = avg > 80 ? '#4caf50' : avg > 60 ? '#ffc107' : '#f44336';
+                
+                const studentRows = students.map(student => {
+                    const studentResults = results.filter(r => r.user_id === student.id);
+                    const avgScore = studentResults.length ? 
+                        (studentResults.reduce((sum, r) => sum + r.score, 0) / studentResults.length * 25).toFixed(1) : 0;
+                    const attempts = studentResults.length;
+                    return `
+                        <tr>
+                            <td>${student.full_name}</td>
+                            <td>${student.school_name}</td>
+                            <td>${avgScore}%</td>
+                            <td>${attempts}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+                return `
+                    <div class="province-section" style="border-left: 8px solid ${color};">
+                        <h3>${province} Province - Average Score: ${avg.toFixed(1)}%</h3>
+                        <table>
+                            <tr>
+                                <th>Student Name</th>
+                                <th>School</th>
+                                <th>Average Score (%)</th>
+                                <th>Completed Attempts</th>
+                            </tr>
+                            ${studentRows || '<tr><td colspan="4" style="text-align:center;">No students have played yet</td></tr>'}
+                        </table>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function exportToCSV() {
+            const users = JSON.parse(localStorage.getItem('users')) || [];
+            const results = JSON.parse(localStorage.getItem('results')) || [];
+
+            let csvContent = 'Province,Full Name,School Name,Average Score,Completed Attempts\n';
+
+            users.filter(u => u.role === 'student').forEach(user => {
+                const studentResults = results.filter(r => r.user_id === user.id);
+                const avgScore = studentResults.length ? 
+                    (studentResults.reduce((sum, r) => sum + r.score, 0) / studentResults.length * 25).toFixed(1) : 0;
+                const attempts = studentResults.length;
+                csvContent += `${user.province},"${user.full_name}","${user.school_name}",${avgScore}%,${attempts}\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', 'student_stats.csv');
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('currentUser');
+            window.location.href = 'login.html';
+        }
+
+        // Load stats on page load
+        loadStats();
+    </script>
+</body>
+</html>
